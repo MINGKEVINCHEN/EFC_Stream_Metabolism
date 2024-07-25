@@ -1,0 +1,88 @@
+---
+title: "Diurnal_202207"
+author: "Ming Chen"
+date: "2023-11-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load(tidyverse, skimr)
+```
+
+```{r}
+library(ggplot2)
+library(lubridate)
+library(corrplot)
+library(dplyr)
+```
+
+```{r}
+setwd("C:/Users/chenm/Desktop/Kevin_senior_thesis/Diurnal_variation")
+library(readxl)
+Sample <- read_excel("TimeSeriesSummary.xlsx")
+Sample <- rename(Sample,
+  'Temperature_C' = TempC,
+  'K_d-1' = K.instant,
+  'GPP_mgO2L-1d-1' = GPP,
+  'ER_mgO2L-1d-1' = ER,
+  'NEP_mgO2L-1d-1' = NEP)
+View(Sample)
+```
+
+```{r}
+# Time Series Plot for each measurement
+InSitu <- Sample %>% 
+  select(DateTime, Temperature_C:Nitrate) %>%
+  gather(variable, measurement, Temperature_C:Nitrate, factor_key=TRUE)
+
+p <- ggplot(InSitu, aes(x=DateTime)) +
+  theme_linedraw() +
+  geom_line(aes(y = measurement), linewidth = 0.7,color = "#4DADCF") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_wrap(~variable, scales = "free")
+ggsave("diurnal_discrete.png", width = 750*4, height = 600*4, units = "px")
+print(p)
+```
+
+```{r}
+# Time Series Plot for selected parameters
+InSitu_selected <- Sample %>% 
+  select(DateTime,`GPP_mgO2L-1d-1`, `ER_mgO2L-1d-1`, pH, Ca, Mg, DIC ) %>%
+  gather(variable, measurement, `GPP_mgO2L-1d-1`:DIC, factor_key=TRUE)
+
+p <- ggplot(InSitu_selected, aes(x=DateTime)) +
+  theme_linedraw() +
+  geom_line(aes(y = measurement), linewidth = 0.7,color = "#4DADCF") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_wrap(~variable, scales = "free")
+ggsave("diurnal_discrete.png", width = 750*4, height = 600*4, units = "px")
+print(p)
+```
+
+
+```{r}
+# Correlation Heatmap
+# Assuming your data frame 'data' only contains numeric columns and a date column
+numeric_data <- Sample %>% select(Temperature_C:Nitrate)
+
+# significant test
+testRes = cor.mtest(numeric_data, conf.level = 0.95)
+
+# Calculate the correlation matrix
+cor_matrix <- cor(numeric_data, use = "pairwise.complete.obs", method = "spearman")
+
+# Plot the heatmap
+corrplot(cor_matrix, method = 'circle', type = 'lower', p.mat = testRes$p, 
+         order = "hclust", insig='blank', tl.col = 'black', tl.cex = 0.5,
+         cl.ratio = 0.1, tl.srt = 45, diag=FALSE)
+
+#Print plot
+png("discrete_correlation.png", width = 600*2, height = 600*2)
+corrplot(cor_matrix, method = 'circle', type = 'lower', p.mat = testRes$p, 
+         order = "hclust", insig='blank', tl.col = 'black', tl.cex = 2,
+         cl.cex = 2, cl.ratio = 0.2, tl.srt = 45, diag=FALSE)
+dev.off()
+```
+
+

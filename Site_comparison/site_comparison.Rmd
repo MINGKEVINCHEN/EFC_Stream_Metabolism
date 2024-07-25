@@ -1,0 +1,161 @@
+---
+title: "Site_comparison"
+author: "Ming Chen"
+date: "2023-10-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if (!require("pacman"))
+   install.packages("pacman")
+```
+
+```{r}
+# Load necessary libraries
+library(ggplot2)
+library(lubridate)
+
+library(readxl)
+df <- read_excel("C:/Users/chenm/Desktop/Kevin_senior_thesis/Site_comparison/instantaneous_comparision_202210.xlsx")
+setwd("C:/Users/chenm/Desktop/Kevin_senior_thesis/Site_comparison")
+View(df)
+```
+
+# GPP plot
+```{r}
+plot_GPP <- ggplot() +
+  geom_tile(data = df, aes(x = DateTime, y = 0, fill = log(I)), height = Inf) +
+  scale_fill_gradient(low = "darkgrey", high = "white") + # Adjust colors as needed
+  geom_line(data = df, aes(x = DateTime, y = GPP.instant, color = Site), size = 0.6) +
+  scale_color_manual(values = c("Site 1" = "#4DADCF", "Site 2" = "#E9943A", "Lake" = "#5EC795")) +
+  labs(title = "Time Series for instantaneous GPP",
+       x = "Time",
+       y = "GPP.instant (mg O2 L-1 day-1)") +
+  scale_fill_gradient(name = "Time of the day",
+                      low = "darkgrey", high = "white", 
+                      breaks = c(-7, 7),
+                      labels = c("Night", "Day")) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 16, face = "bold"), # Modify plot title size and make it bold
+        axis.title.x = element_text(size = 14), # Modify x-axis title size
+        axis.title.y = element_text(size = 14), # Modify y-axis title size
+        axis.text.x = element_text(size = 12), # Modify x-axis text size
+        axis.text.y = element_text(size = 12), # Modify y-axis text size
+        legend.title = element_text(size = 14), # Modify legend title size
+        legend.text = element_text(size = 12)) # Modify legend text size
+
+ggsave("GPP_with_shade.jpg", width = 700*3, height = 496*3, units = "px")
+plot_GPP
+```
+
+#ER plot
+```{r}
+plot_ER <- ggplot() +
+  geom_tile(data = df, aes(x = DateTime, y = 0, fill = log(I)), height = Inf) +
+  scale_fill_gradient(low = "darkgrey", high = "white") + # Adjust colors as needed
+  geom_line(data = df, aes(x = DateTime, y = ER.instant, color = Site), size = 0.6) +
+  scale_color_manual(values = c("Site 1" = "#4DADCF", "Site 2" = "#E9943A", "Lake" = "#5EC795")) +
+  labs(title = "Time Series for instantaneous ER",
+       x = "Time",
+       y = "ER.instant (mg O2 L-1 day-1)") +
+  scale_fill_gradient(name = "Time of the day",
+                      low = "darkgrey", high = "white", 
+                      breaks = c(-7, 7),
+                      labels = c("Night", "Day")) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 16, face = "bold"), # Modify plot title size and make it bold
+        axis.title.x = element_text(size = 14), # Modify x-axis title size
+        axis.title.y = element_text(size = 14), # Modify y-axis title size
+        axis.text.x = element_text(size = 12), # Modify x-axis text size
+        axis.text.y = element_text(size = 12), # Modify y-axis text size
+        legend.title = element_text(size = 14), # Modify legend title size
+        legend.text = element_text(size = 12)) # Modify legend text size
+
+ggsave("ER_with_shade.jpg", width = 700*3, height = 496*3, units = "px")
+plot_ER
+```
+
+# K Plot
+```{r}
+plot_K <- ggplot() +
+  geom_tile(data = df, aes(x = DateTime, y = 0, fill = log(I)), height = Inf) +
+  scale_fill_gradient(low = "darkgrey", high = "white") + # Adjust colors as needed
+  geom_line(data = df, aes(x = DateTime, y = K.instant, color = Site), size = 0.6) +
+  scale_color_manual(values = c("Site 1" = "#4DADCF", "Site 2" = "#E9943A", "Lake" = "#5EC795")) +
+  labs(title = "Time Series for instantaneous K",
+       x = "Time",
+       y = "K.instant (day-1)") +
+  scale_fill_gradient(name = "Time of the day",
+                      low = "darkgrey", high = "white", 
+                      breaks = c(-7, 7),
+                      labels = c("Night", "Day")) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 16, face = "bold"), # Modify plot title size and make it bold
+        axis.title.x = element_text(size = 14), # Modify x-axis title size
+        axis.title.y = element_text(size = 14), # Modify y-axis title size
+        axis.text.x = element_text(size = 12), # Modify x-axis text size
+        axis.text.y = element_text(size = 12), # Modify y-axis text size
+        legend.title = element_text(size = 14), # Modify legend title size
+        legend.text = element_text(size = 12)) # Modify legend text size
+
+ggsave("K_with_shade.jpg", width = 700*3, height = 496*3, units = "px")
+plot_K
+```
+
+
+# DO Plot
+```{r}
+plot_DO <- ggplot() +
+  geom_tile(data = df, aes(x = DateTime, y = 0, fill = log(I)), height = Inf) +
+  scale_fill_gradient(low = "darkgrey", high = "white") + # Adjust colors as needed
+  geom_line(data = df, aes(x = DateTime, y = DO, color = Site), size = 0.6) +
+  scale_color_manual(values = c("Site 1" = "#4DADCF", "Site 2" = "#E9943A", "Lake" = "#5EC795")) +
+  labs(title = "Time Series for instantaneous DO",
+       x = "Time",
+       y = "Dissolved Oxygen (mg L-1)") +
+  scale_fill_gradient(name = "Time of the day",
+                      low = "darkgrey", high = "white", 
+                      breaks = c(-7, 7),
+                      labels = c("Night", "Day")) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 16, face = "bold"), # Modify plot title size and make it bold
+        axis.title.x = element_text(size = 14), # Modify x-axis title size
+        axis.title.y = element_text(size = 14), # Modify y-axis title size
+        axis.text.x = element_text(size = 12), # Modify x-axis text size
+        axis.text.y = element_text(size = 12), # Modify y-axis text size
+        legend.title = element_text(size = 14), # Modify legend title size
+        legend.text = element_text(size = 12)) # Modify legend text size
+
+ggsave("DO_with_shade.jpg", width = 700*3, height = 496*3, units = "px")
+plot_DO
+```
+
+# Temperature plot
+```{r}
+plot_temp <- ggplot() +
+  geom_tile(data = df, aes(x = DateTime, y = 10, fill = log(I)), height = Inf) +
+  scale_fill_gradient(low = "darkgrey", high = "white") + # Adjust colors as needed
+  geom_line(data = df, aes(x = DateTime, y = TempC, color = Site), size = 0.6) +
+  scale_color_manual(values = c("Site 1" = "#4DADCF", "Site 2" = "#E9943A", "Lake" = "#5EC795")) +
+  labs(title = "Time Series for instantaneous Temperature",
+       x = "Time",
+       y = "Temperature (°C)") +
+  scale_fill_gradient(name = "Time of the day",
+                      low = "darkgrey", high = "white", 
+                      breaks = c(-7, 7),
+                      labels = c("Night", "Day")) +
+  scale_y_continuous(limits = c(10, 20)) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 16, face = "bold"), # Modify plot title size and make it bold
+        axis.title.x = element_text(size = 14), # Modify x-axis title size
+        axis.title.y = element_text(size = 14), # Modify y-axis title size
+        axis.text.x = element_text(size = 12), # Modify x-axis text size
+        axis.text.y = element_text(size = 12), # Modify y-axis text size
+        legend.title = element_text(size = 14), # Modify legend title size
+        legend.text = element_text(size = 12)) # Modify legend text size
+
+ggsave("temp_with_shade.jpg", width = 700*3, height = 496*3, units = "px")
+plot_temp
+```
+
