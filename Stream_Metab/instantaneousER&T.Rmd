@@ -1,0 +1,246 @@
+---
+title: "Instantaneous ER vs T"
+author: "Ming Chen"
+date: "2023-08-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if (!require("pacman"))
+   install.packages("pacman")
+pacman::p_load(tidyverse, skimr)
+library(zoo)
+library(dplyr)
+library(ggplot2)
+library(lme4)
+```
+
+# import the excel file that has the instantaneous measurement
+```{r}
+library(readxl)
+instantaneous <- read_excel("C:/Users/chenm/Desktop/Kevin_senior_thesis/data/instantaneous.xlsx")
+#View(instantaneous)
+```
+
+# find the gap interval in my data
+```{r}
+instantaneous <- instantaneous %>% arrange(DateTime) %>% mutate(YearMonth = as.yearmon(DateTime))
+instantaneous <- instantaneous %>% mutate(DayMonth = format(Date, "%m/%d"))
+instantaneous$Season <- factor(instantaneous$Season, levels = c("Spring", "Summer", "Fall", "Winter"))
+#instantaneous <- instantaneous %>% arrange(DateTime) %>% mutate(Month = format(Date, "%b"))
+#instantaneous <- instantaneous %>% arrange(DateTime) %>% 
+  #mutate(DateTime = format(DateTime, "%m-%d %H:%M:%S"),Month = format(Date, "%b"))
+```
+
+# Skim the data based on the seasons
+```{r}
+list(
+  Spring = skim(filter(instantaneous, Season == "Spring")),
+  Summer = skim(filter(instantaneous, Season == "Summer")),
+  Autumn = skim(filter(instantaneous, Season == "Fall")),
+  Winter = skim(filter(instantaneous, Season == "Winter"))
+)
+```
+
+
+# plot out 1/temp vs ln(ER)
+# Yvon-Durocher, G., Caffrey, J. M., Cescatti, A., Dossena, M., Giorgio, P. del, Gasol, J. M., Montoya, J. M., Pumpanen, J., Staehr, P. A., Trimmer, M., Woodward, G., & Allen, A. P. (2012). Reconciling the temperature dependence of respiration across timescales and ecosystem types. Nature, 487(7408), 472–476. https://doi.org/10.1038/nature11205
+# Johnston, A. S. A., Meade, A., Ardö, J., Arriga, N., Black, A., Blanken, P. D., Bonal, D., Brümmer, C., Cescatti, A., Dušek, J., Graf, A., Gioli, B., Goded, I., Gough, C. M., Ikawa, H., Jassal, R., Kobayashi, H., Magliulo, V., Manca, G., … Venditti, C. (2021). Temperature thresholds of ecosystem respiration at a global scale. Nature Ecology and Evolution, 5(4), 487–494. https://doi.org/10.1038/s41559-021-01398-z
+```{r}
+# Transform the data
+instantaneous$inv_temp <- 1 / (instantaneous$tempC + 273)
+instantaneous$log_ER_instant <- log(instantaneous$ER.instant)
+
+# Calculate the number of data points
+num_points <- nrow(instantaneous)
+
+# Linear regression
+ER_model <- lm(log_ER_instant ~ inv_temp, data = instantaneous)
+r_squared <- round(summary(ER_model)$r.squared, 2)
+
+# Make the plot
+p <- ggplot(instantaneous, aes(x = inv_temp, y = log_ER_instant)) +
+  geom_point(aes(color = Season), size = 1) +
+  scale_color_manual(values=c("Winter"="#4DADCF", "Summer"= "coral1","Fall"="#E9943A", "Spring"="#5EC795")) + 
+  annotate("text", x = min(instantaneous$inv_temp), y = min(instantaneous$log_ER_instant), 
+           label = paste("N =", num_points), hjust = 0, vjust = 0, size = 4, color = "black") +
+  labs(x = "1/Temperature (K)",
+       y = "ln(ER(mg O2 L-1 d-1))") + 
+  theme_bw()
+
+ggsave("temp_ER.png", width = 425*3, height = 496*3, units = "px")
+print(p)
+```
+Try to do regression using multiple approaches but none of them work.
+
+linear model: R^2 = 0.27
+
+segmented model, cannot find the proper breakpoint
+
+2 linear model: poor R^2 values
+# Transform the data
+instantaneous$inv_tempC <- 1 / instantaneous$tempC
+instantaneous$log_ER_instant <- log(instantaneous$ER.instant)
+
+segment1 <- instantaneous %>% filter(inv_tempC < 0.13)
+segment2 <- instantaneous %>% filter(inv_tempC >= 0.13)
+
+# Fit a linear model
+model1 <- lm(log_ER_instant ~ inv_tempC, data = segment1)
+model2 <- lm(log_ER_instant ~ inv_tempC, data = segment2)
+
+mixed effects model, the code cannot identify the group by Seasons
+
+# GPP vs Temperature
+```{r}
+# Remove the datapoints with 0 GPP value
+GPP_segment <- instantaneous %>% filter(GPP.instant > 0)
+GPP_segment$log_GPP_instant <- log(GPP_segment$GPP.instant)
+
+# Find the number of data points  
+num_points <- nrow(GPP_segment)
+
+# Linear regression
+GPP_model <- lm(log_GPP_instant ~ inv_temp, data = GPP_segment)
+r_squared <- round(summary(GPP_model)$r.squared, 2)
+
+# Make the plot
+p <- ggplot(GPP_segment, aes(x = inv_temp, y = log_GPP_instant)) +
+  geom_point(aes(color = Season), size = 1) +
+  scale_color_manual(values=c("Winter"="#4DADCF", "Summer"= "coral1","Fall"="#E9943A", "Spring"="#5EC795")) + 
+  annotate("text", x = min(GPP_segment$inv_temp), y = min(GPP_segment$log_GPP_instant), 
+           label = paste("N =", num_points), hjust = 0, vjust = 0, size = 4, color = "black") +
+  labs(x = "1/Temperature (K)",
+       y = "ln(GPP(mg O2 L-1 d-1))") + 
+  theme_bw()
+
+ggsave("temp_GPP.png", width = 425*3, height = 496*3, units = "px")
+print(p)
+```
+R^2 = 0.09, y = -9614.48x + 29.35
+
+# GPP vs PAR
+```{r}
+num_points <- nrow(instantaneous)
+
+PAR_model <- lm(GPP.instant ~ I, data = instantaneous)
+r_squared <- round(summary(PAR_model)$r.squared, 2)
+
+p <- ggplot(instantaneous, aes(x = I, y = GPP.instant)) +
+  geom_point(aes(color = Season), size = 1) +
+  scale_color_manual(values=c("Winter"="#4DADCF", "Summer"= "coral1","Fall"="#E9943A", "Spring"="#5EC795")) + 
+  annotate("text", x = 500, y = 0.85, 
+           label = paste("N =", num_points), hjust = 0, vjust = 0, size = 4, color = "black") +
+  labs(x = "PAR(umol m-2 s-1)",
+       y = "GPP(mg O2 L-1 d-1)") + 
+  theme_bw()
+
+ggsave("PAR_GPP.png", width = 425*3, height = 496*3, units = "px")
+print(p)
+```
+R^2 = 0.41, y = 0.0098715x + 0.0004891
+
+# Calculate the spearman correlation between different forms of temperature and ER    
+# create datafram with different forms of temperature and ER
+```{r}
+test <- data.frame(tempC = instantaneous$tempC,
+                   ER = instantaneous$ER.instant)
+test <- test %>% mutate(tempC_rev = 1/tempC, logER = log(ER))
+```
+
+```{r}
+corr1 <- cor.test(formula = ~ tempC_rev + logER, data = test , 
+                  method = 'spearman', exact = FALSE)
+corr1
+
+corr2 <- cor.test(formula = ~ tempC_rev + logER , 
+                  data = test %>%filter(tempC < 20), 
+                  method = 'spearman',
+                  exact = FALSE)
+corr2
+
+corr3 <- cor.test(formula = ~ tempC_rev + logER , 
+                  data = test %>%filter(tempC > 20), 
+                  method = 'spearman',
+                  exact = FALSE)
+corr3
+```
+
+
+# time serise for instantaneous 
+```{r}
+ggplotFunc <- function(d){
+  p <- ggplot(d, aes(x=DateTime)) +
+  theme_linedraw() +
+  geom_line(aes(y = measurement), color = "deepskyblue2") +
+  facet_wrap(~variable, scales = "free")
+  print(p)
+  }
+InSitu <- instantaneous %>% #filter(DateTime < "2023-3-15") %>%#
+  select(DateTime, tempC:atmo.pressure) %>%
+  gather(variable, measurement, tempC:atmo.pressure, factor_key=TRUE)
+p <- ggplotFunc(InSitu) 
+```
+
+```{r}
+p <- ggplot(instantaneous, aes(x = DateTime, y = I)) +
+  theme_linedraw() +
+  geom_line(linewidth = 0.8) +
+  facet_wrap(~YearMonth, scales = "free", ncol = 3)
+print(p)
+```
+
+
+# facet_wrap by month to show time series plot for ER, GPP, K
+# Using the new code from to make the plot so it will have legend
+```{r}
+# Create a new dataframe with a 'variable' column
+instantaneous_long <- instantaneous %>%
+  gather(variable, value, ER.instant, GPP.instant, K.instant, DO.meas) %>%
+  mutate(value = ifelse(variable == "DO.meas", value / 15, value))
+
+# Modified ggplot code
+p <- ggplot(instantaneous_long, aes(x = DateTime, y = value, color = variable)) +
+  theme_linedraw() +
+  geom_line(linewidth = 0.8) +
+  facet_wrap(~YearMonth, scales = "free", ncol = 3) +
+  scale_y_continuous(breaks = seq(0, 1, 0.1), 
+                     limits = c(0, 1), 
+                     sec.axis = sec_axis(~.*15, name = "DO (mg L-1)")) +
+  labs(title = "Instantaneous Stream Metabolism",
+       x = "Date Time",
+       y = "Value (mg O2 L-1 d-1)") +
+  scale_color_manual(values = c("ER.instant" = "#E9943A", "GPP.instant" = "#5EC795",
+                                "K.instant" = "coral1", "DO.meas" = "#4DADCF"),
+                     name = "Measurements") +
+  theme_bw()
+ggsave("instant.png", width = 750*4, height = 600*4, units = "px")
+# Print the plot
+print(p)
+```
+
+
+# facet_wrap by month to show time series plot for GPP, TempC
+```{r}
+temp_long <- instantaneous %>%
+  gather(variable, value, GPP.instant, tempC) %>%
+  mutate(value = ifelse(variable == "tempC", value / 30, value))
+
+p <- ggplot(temp_long, aes(x = DateTime, y = value, color = variable)) +
+  theme_linedraw() +
+  geom_line(linewidth = 0.8) +
+  facet_wrap(~YearMonth, scales = "free", ncol = 3) +
+  scale_y_continuous(breaks = seq(0, 1, 0.1), 
+                     limits = c(0, 1), 
+                     sec.axis = sec_axis(~.*15, name = "Temperature (\u00B0C)")) +
+  labs(title = "GPP and Temperature",
+       x = "Date Time",
+       y = "Value (mg O2 L-1 d-1)") +
+  scale_color_manual(values = c("tempC" = "#E9943A", "GPP.instant" = "#5EC795"),
+                     name = "Measurements") +
+  theme_bw()
+ggsave("GPP_Temp.png", width = 750*4, height = 600*4, units = "px")
+# Print the plot
+print(p)
+```
