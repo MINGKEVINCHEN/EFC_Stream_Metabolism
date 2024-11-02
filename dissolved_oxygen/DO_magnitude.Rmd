@@ -1,0 +1,173 @@
+---
+title: "DO_magnitude"
+author: "Ming Chen"
+date: "2023-11-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if (!require("pacman"))
+   install.packages("pacman")
+pacman::p_load(tidyverse, skimr)
+
+# Load necessary libraries
+library(ggplot2)
+library(lubridate)
+```
+
+```{r}
+data <- read.csv("C:/Users/DELL/Desktop/plot_update/dissolved_oxygen/Daily_DO_Temp_Magnitudes.csv")
+data$Season <- factor(data$Season, levels = c("Spring", "Summer", "Fall", "Winter"))
+```
+
+```{r}
+# time series plot for DO_magnitude
+DO_magnitude_series <- ggplot(data, aes(x=Month, y=DO_Magnitude, color=Season)) +
+  geom_point() +
+  labs(title="Time Series for DO magnitude",
+       x="Month",
+       y="DO amplitude (mg L-1)") +
+  scale_color_manual(values=c("Winter"="#4DADCF", "Summer"= "coral1","Fall"="#E9943A", "Spring"="#5EC795")) +
+  theme_minimal()
+DO_magnitude_series
+```
+
+```{r}
+# time series plot for DO_Minimum
+DO_Minimum_series <- ggplot(data, aes(x=Month, y=Min_DO)) +
+  geom_point() +
+  labs(title="Time Series for Minimum DO",
+       x="Month",
+       y="Minimum DO (mg L-1)") +
+  theme_minimal()
+DO_Minimum_series
+```
+
+```{r}
+DO_magnitude_box <- ggplot(data, aes(x = Season, y = DO_Magnitude, fill = Site)) + 
+  geom_boxplot(position = position_dodge(0.8)) +  # Position to dodge the boxes
+  geom_dotplot(binaxis='y', stackdir='center', binwidth=0.1, position = position_dodge(0.8)) +  # Dotplot with dodging
+  labs(y = "DO Amplitude (mg L-1)", 
+       fill = "Site") +  # Title for the legend indicating Site 1 and Site 2
+  scale_fill_manual(values=c("Site1"="#4DADCF", "Site2"="coral1")) +
+  theme_bw() +
+  theme(plot.title = element_text(size = 20), # Adjust the size of the plot title
+        axis.title.x = element_text(size = 18), # Adjust the size of the x-axis title
+        axis.title.y = element_text(size = 18), # Adjust the size of the y-axis title
+        axis.text.x = element_text(size = 16), # Adjust the size of the x-axis text
+        axis.text.y = element_text(size = 16),
+        legend.title = element_text(size = 16), # Adjust font size of legend title
+        legend.text = element_text(size = 14)) +  # Adjust the size of the y-axis text
+  theme(axis.title.x = element_blank())
+
+# Show the plot
+DO_magnitude_box
+
+# Save the plot as a PNG
+ggsave("DO_magnitude_box.png", plot = DO_magnitude_box, width = 750*4, height = 600*4, units = "px")
+
+```
+# with tile
+```{r}
+# Load ggpattern
+library(ggpattern)
+
+DO_magnitude_box <- ggplot(data, aes(x = Season, y = DO_Magnitude, fill = Site, pattern = Site)) + 
+  geom_boxplot_pattern(aes(pattern_fill = Site, pattern = Site), 
+                       position = position_dodge(0.8), color = "black",
+                       pattern_density = 0.1, pattern_spacing = 0.05) +  # Boxplot with pattern dodging
+  geom_dotplot(binaxis = 'y', stackdir = 'center', binwidth = 0.1, 
+               position = position_dodge(0.8)) +  # Dotplot with dodging
+  labs(y = "DO Amplitude (mg L-1)", fill = "Site", pattern = "Pattern") +  # Title for the legend
+  scale_fill_manual(values = c("Site1" = "#4DADCF", "Site2" = "coral1")) +  # Colors for Site1 and Site2
+  scale_pattern_manual(values = c("Site1" = "stripe", "Site2" = "none")) +  # Pattern for Site1, none for Site2
+  scale_pattern_fill_manual(values = c("Site1" = "#4DADCF", "Site2" = "coral1")) +  # Fill colors for pattern
+  theme_bw() +
+  theme(plot.title = element_text(size = 20),   # Adjust the size of the plot title
+        axis.title.x = element_text(size = 18), # Adjust the size of the x-axis title
+        axis.title.y = element_text(size = 18), # Adjust the size of the y-axis title
+        axis.text.x = element_text(size = 16),  # Adjust the size of the x-axis text
+        axis.text.y = element_text(size = 16),
+        legend.title = element_text(size = 16), # Adjust font size of legend title
+        legend.text = element_text(size = 14)) +  # Adjust font size of legend text
+  theme(axis.title.x = element_blank())  # Remove x-axis title
+
+# Show the plot
+DO_magnitude_box
+
+# Save the plot with patterns using the cairo device to ensure pattern rendering
+ggsave("DO_magnitude_box.png", plot = DO_magnitude_box, width = 750*4, height = 600*4, units = "px", device = "png", type = "cairo")
+
+```
+
+
+```{r}
+dataLong <- data %>%
+  gather(Max_DO, Min_DO, key = "Parameter", value = "Value")
+
+# box plot for DO Minimum
+DO_extremes_box <- ggplot(dataLong, aes(x = Season, y = Value, fill = Parameter)) + 
+  geom_boxplot() + 
+  labs(title = "Box Plot of Maxiumum and Minimum DO by Season", x = "Season", y = "DO (mg L-1)") +
+  geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(0.7), binwidth=0.1) +
+  scale_fill_manual(values=c("Max_DO"="coral1", "Min_DO"="#4DADCF")) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 20), # Adjust the size of the plot title
+        axis.title.x = element_text(size = 18), # Adjust the size of the x-axis title
+        axis.title.y = element_text(size = 18), # Adjust the size of the y-axis title
+        axis.text.x = element_text(size = 16), # Adjust the size of the x-axis text
+        axis.text.y = element_text(size = 16),
+        legend.title = element_text(size = 16),   # Adjust font size of legend title
+        legend.text = element_text(size = 14)) # Adjust the size of the y-axis text
+DO_extremes_box
+ggsave("DO_extremes_box.png", width = 750*4, height = 600*4, units = "px")
+```
+
+```{r}
+# Load necessary library
+library(ggpattern)
+library(dplyr)
+library(tidyr)
+
+# Reshape the data to long format
+data_long <- data %>%
+  pivot_longer(cols = c(DO_Magnitude, Max_DO, Min_DO), 
+               names_to = "DO_Type", 
+               values_to = "DO_Value")
+
+# Define custom labels for the facets
+custom_labels <- as_labeller(c("DO_Magnitude" = "DO Amplitude", 
+                               "Max_DO" = "Max DO", 
+                               "Min_DO" = "Min DO"))
+
+# Plot with facets for each DO type
+DO_boxplot <- ggplot(data_long, aes(x = Season, y = DO_Value, fill = Site, pattern = Site)) + 
+  geom_boxplot_pattern(aes(pattern_fill = Site, pattern = Site), 
+                       position = position_dodge(0.8), color = "black",
+                       pattern_density = 0.1, pattern_spacing = 0.05) +  # Boxplot with pattern dodging
+  geom_dotplot(binaxis = 'y', stackdir = 'center', binwidth = 0.1, 
+               position = position_dodge(0.8)) +  # Dotplot with dodging
+  labs(y = "DO Value (mg L-1)", fill = "Site", pattern = "Pattern") +  # Title for the legend
+  scale_fill_manual(values = c("Site1" = "#4DADCF", "Site2" = "coral1")) +  # Colors for Site1 and Site2
+  scale_pattern_manual(values = c("Site1" = "stripe", "Site2" = "none")) +  # Pattern for Site1, none for Site2
+  scale_pattern_fill_manual(values = c("Site1" = "#4DADCF", "Site2" = "coral1")) +  # Fill colors for pattern
+  facet_wrap(~DO_Type, scales = "free_y", nrow = 3, labeller = custom_labels) +  # Facet for each DO type
+  theme_bw() +
+  theme(plot.title = element_text(size = 20),    # Adjust the size of the plot title
+        axis.title.x = element_blank(),          # Remove x-axis title
+        axis.title.y = element_text(size = 18),  # Adjust the size of the y-axis title
+        axis.text.x = element_text(size = 16),   # Adjust the size of the x-axis text
+        axis.text.y = element_text(size = 16),
+        legend.title = element_text(size = 16),  # Adjust font size of legend title
+        legend.text = element_text(size = 14))   # Adjust font size of legend text
+
+# Show the plot
+DO_boxplot
+
+# Save the plot with patterns using the cairo device to ensure pattern rendering
+ggsave("DO_magnitude_box.png", plot = DO_boxplot, width = 750*4, height = 600*4, units = "px", device = "png", type = "cairo")
+
+```
+
+

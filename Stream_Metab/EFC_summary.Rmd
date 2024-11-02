@@ -11,18 +11,23 @@ if (!require("pacman"))
    install.packages("pacman")
 pacman::p_load(tidyverse, skimr)
 library(scales)
+library(readxl)
 ```
 
 # import the csv file that summarizes baseMetab results
 ```{r}
-setwd("C:/Users/chenm/Desktop/Kevin_senior_thesis/data")
-library(readxl)
-Data <- read_excel("compiled_metab.xlsx")
+setwd("C:/Users/DELL/Desktop/plot_update/summary_metab")
+Data <- read.csv("compiled_metab.csv")
+Data$Date <- as.Date(Data$Date, format = "%Y-%m-%d")
 Data <- Data %>% mutate(DayMonth = format(Date, "%m/%d"))
 Data$Season <- factor(Data$Season, levels = c("Spring", "Summer", "Fall", "Winter"))
-Data$type <- ifelse(Data$Date < as.Date("2023-07-01"), "original", "complementary")
+Data$ER.mean <- -Data$ER.mean
+# Extracting just the month from full_dates and converting it to a factor
+Data$Month_chr <- factor(month(Data$Date, label = TRUE, abbr = TRUE))
+
+#Data <- Data %>% filter(Site == "Site2")
+#Data$type <- ifelse(Data$Date < as.Date("2023-07-01"), "original", "complementary")
 #Data$DayMonth <- as.POSIXct(Data$DayMonth, format = "%m/%d")
-#Data <- Data %>% filter(Date < "2023-9-1")
 ```
 
 # Convert all MonthDay variable into DateTime variable and set the year to 2022
@@ -44,15 +49,15 @@ list(
 
 # plot GPP vs ER
 ```{r}
-p <- ggplot(Data, aes(x = GPP.mean, y = ER.mean, color = Season)) +
+p <- ggplot(Data, aes(x = GPP.mean, y = ER.mean, color = Season, shape = Site)) +
   geom_point(size = 2) +
-  geom_abline() +
-  labs(title="GPP and ER in EFC, May 2022 - December 2023",
-       x="GPP (mg O2 L-1 d-1)",
+  geom_abline(slope = -1, intercept = 0) +
+  labs(x="GPP (mg O2 L-1 d-1)",
        y="ER (mg O2 L-1 d-1)") +  
   scale_x_continuous(breaks = seq(0, 90, 30), 
                      limits=c(0, 100)) + 
-  #scale_y_continuous(breaks=seq(0,30,by=15)) +
+  scale_y_continuous(breaks = seq(0, -90, -30), 
+                     limits = c(-100, 0)) + 
   scale_color_manual(values=c("Winter"="#4DADCF", "Summer"= "coral1","Fall"="#E9943A", "Spring"="#5EC795")) +
   theme_bw()
 ggsave("heterotrophic.png", width = 600*3, height = 500*3, units = "px")
@@ -61,8 +66,8 @@ print(p)
 
 ```{r}
 DataLong <- Data %>%
-  rename(GPP = GPP.mean, ER = ER.mean, NEP = NEP.mean) %>%
-  gather(GPP, ER, NEP, key = "Parameter", value = "Value")
+  rename(DO = DO.mean, GPP = GPP.mean, ER = ER.mean, NEP = NEP.mean, K = K.mean) %>%
+  gather(DO, GPP, ER, NEP, K, key = "Parameter", value = "Value")
   
 DataLong$max <- c(0)
 DataLong$min <- c(0)
@@ -73,6 +78,10 @@ for (i in 1:j) {
   DataLong$min[i] <- DataLong$Value[i] - DataLong$GPP.sd[i]
 }  
 else if (DataLong$Parameter[i] == "ER") {
+  DataLong$max[i] <- DataLong$Value[i] + DataLong$ER.sd[i]
+  DataLong$min[i] <- DataLong$Value[i] - DataLong$ER.sd[i]
+} 
+else if (DataLong$Parameter[i] == "K") {
   DataLong$max[i] <- DataLong$Value[i] + DataLong$ER.sd[i]
   DataLong$min[i] <- DataLong$Value[i] - DataLong$ER.sd[i]
 } 
@@ -106,8 +115,8 @@ print(p)
 ```{r}
 p <- ggplot(DataLong, aes(x = full_dates, y = Value)) +
   geom_errorbar(aes(ymin = min, ymax = max)) +
-  geom_point(aes(color = type),size = 1.5) + 
-  scale_color_manual(values=c("original"="black", "complementary"= "#4DADCF")) +
+  geom_point(size = 1.5) + 
+  #scale_color_manual(values=c("original"="black", "complementary"= "#4DADCF")) +
   geom_smooth(method = "loess", fill='darkgray', 
               level=0.90) +
   scale_x_datetime(labels = date_format("%b")) + # Format x-axis labels
@@ -125,10 +134,218 @@ ggsave("metab_summary_all.png", width = 750*4, height = 600*4, units = "px")
 print(p)
 ```
 
+```{r}
+# Adjust ggplot to use boxplot for each month
+p <- ggplot(DataLong, aes(x = full_dates, y = Value)) +
+  geom_boxplot(aes(group = cut(full_dates, "month")), fill = "lightblue", color = "black", outlier.shape = NA) +  
+  geom_jitter(size = 1.5, width = 0.2, aes(color = Parameter)) +  # Jitter points to show individual data
+  scale_x_datetime(labels = date_format("%b"), breaks = date_breaks("month")) +  # Format x-axis labels for each month
+  labs(title = "Stream Metabolism Summary, Box Plot by Month",
+       x="Month",
+       y="Value (mg O2 L-1 d-1)") +
+  theme_bw()+ 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title = element_text(size = 14),  # Adjust font size of axis titles
+        plot.title = element_text(size = 16, face = "bold"),  # Adjust font size and style of plot title
+        legend.title = element_text(size = 12),  # Adjust font size of legend title
+        legend.text = element_text(size = 10)) +
+  facet_wrap(~Parameter, scales = "free", ncol = 1)
+
+# Save the plot
+ggsave("metab_summary_boxplot.png", plot = p, width = 750*4, height = 600*4, units = "px")
+
+# Print the plot
+print(p)
+```
+
+```{r}
+library(ggplot2)
+
+# Plotting the data
+p <- ggplot(DataLong, aes(x = Month_chr, y = Value)) +
+  geom_boxplot(aes(fill = Season)) +  # Boxplot per month
+  scale_fill_manual(values = c("Winter" = "#4DADCF", 
+                               "Summer" = "coral1",
+                               "Fall" = "#E9943A", 
+                               "Spring" = "#5EC795")) +  # Custom colors for seasons
+  geom_jitter(size = 1, width = 0.1, color = "black") +
+  labs(title = "Stream Metabolism Summary by Month",
+       x = "Month",
+       y = "Value (mg O2 L-1 d-1)") +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title = element_text(size = 14),  # Adjust font size of axis titles
+        plot.title = element_text(size = 16, face = "bold"),  # Adjust font size and style of plot title
+        legend.title = element_text(size = 12),  # Adjust font size of legend title
+        legend.text = element_text(size = 10)) +
+  facet_wrap(~Parameter, scales = "free", ncol = 1)  # Facet by GPP, ER, NEP
+
+# Print the plot
+print(p)
+
+# Save the plot if needed
+ggsave("metab_summary_boxplot_all.png", plot = p, width = 750*4, height = 750*4, units = "px")
+
+```
+
+
+```{r}
+# Adjust ggplot to use boxplot for each season
+p <- ggplot(DataLong, aes(x = Season, y = Value)) +
+  geom_boxplot(aes(fill = Season), color = "black", outlier.shape = NA) +  # Boxplot grouped by season
+  #geom_jitter(size = 1.5, width = 0.2, aes(color = "black")) +  # Jitter points to show individual data
+  scale_fill_manual(values = c("Winter" = "#4DADCF", 
+                               "Summer" = "coral1",
+                               "Fall" = "#E9943A", 
+                               "Spring" = "#5EC795")) +  # Custom colors for seasons
+  labs(title = "Stream Metabolism Summary, Box Plot by Season",
+       x = "Season",
+       y = "Value (mg O2 L-1 d-1)") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title = element_text(size = 14),  # Adjust font size of axis titles
+        plot.title = element_text(size = 16, face = "bold"),  # Adjust font size and style of plot title
+        legend.title = element_text(size = 12),  # Adjust font size of legend title
+        legend.text = element_text(size = 10)) +
+  facet_wrap(~Parameter, scales = "free", ncol = 1)
+
+# Save the plot
+ggsave("metab_summary_boxplot_season_all.png", plot = p, width = 750*4, height = 600*4, units = "px")
+
+# Print the plot
+print(p)
+```
+```{r}
+p <- ggplot(DataLong, aes(x = Season, y = Value, fill = Site)) +
+  geom_boxplot(color = "black", outlier.shape = NA, position = position_dodge(width = 0.75)) +  # Grouped boxplot
+  scale_fill_manual(values = c("Site1" = "#4DADCF", 
+                               "Site2" = "coral1")) +  # Custom colors for Site1 and Site2
+  labs(y = "Value (mg O2 L-1 d-1)") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title = element_text(size = 14),  # Adjust font size of axis titles
+        legend.title = element_text(size = 12),  # Adjust font size of legend title
+        legend.text = element_text(size = 10)) +
+  labs(x = NULL,  # Remove x-axis title
+       y = "Value (mg O2 L-1 d-1)") +
+  facet_wrap(~Parameter, scales = "free", ncol = 1)
+
+# Save the plot
+ggsave("metab_summary_boxplot_season_2sites.png", plot = p, width = 750*4, height = 600*4, units = "px")
+print(p)
+```
+
+```{r}
+# Load necessary libraries
+library(ggpattern)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# Define custom labels with units for each parameter
+custom_labels <- as_labeller(c(
+  "ER" = "ER (mg O2 L^-1 d^-1)",
+  "NEP" = "NEP (mg O2 L^-1 d^-1)",
+  "GPP" = "GPP (mg O2 L^-1 d^-1)",
+  "K" = "K (d^-1)",
+  "DO" = "DO (mg L^-1)"
+))
+
+# Plot with facet_wrap and conditional y-axis limits
+p <- ggplot(DataLong, aes(x = Season, y = Value, fill = Site, pattern = Site)) +
+  geom_boxplot_pattern(aes(pattern_fill = Site), 
+                       color = "black", outlier.shape = NA, position = position_dodge(width = 0.75),
+                       pattern_density = 0.1, pattern_spacing = 0.05) +  # Grouped boxplot with pattern
+  
+  # Custom colors and patterns
+  scale_fill_manual(values = c("Site1" = "#4DADCF", "Site2" = "coral1")) +  # Custom colors for Site1 and Site2
+  scale_pattern_manual(values = c("Site1" = "stripe", "Site2" = "none")) +  # Different patterns
+  scale_pattern_fill_manual(values = c("Site1" = "#4DADCF", "Site2" = "coral1")) +  # Same fill colors
+  
+  # Conditional y-axis limits: add invisible points to set limits for specific facets
+  geom_blank(data = subset(DataLong, Parameter %in% c("ER", "NEP")), aes(y = -60)) +
+  geom_blank(data = subset(DataLong, Parameter %in% c("ER", "NEP")), aes(y = 0)) +
+
+  # Facet with custom labels and free y-scales
+  facet_wrap(~Parameter, scales = "free_y", ncol = 1, labeller = custom_labels) +
+  labs(y = "Value") +
+  
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title = element_text(size = 14),  # Adjust font size of axis titles
+        legend.title = element_text(size = 12),  # Adjust font size of legend title
+        legend.text = element_text(size = 10)) +
+  
+  labs(x = NULL)  # Remove x-axis title
+
+# Save the plot using cairo to render patterns correctly
+ggsave("metab_summary_boxplot_season_2sites.png", 
+       plot = p, 
+       width = 750*4, height = 600*4, units = "px", 
+       device = "png", type = "cairo")
+print(p)
+
+```
+
+
+
+# Different ways to tile 
+```{r}
+# Load necessary libraries
+library(ggpattern)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# Define custom labels with units for each parameter
+custom_labels <- as_labeller(c(
+  "ER" = "ER (mg O2 L^-1 d^-1)",
+  "NEP" = "NEP (mg O2 L^-1 d^-1)",
+  "GPP" = "GPP (mg O2 L^-1 d^-1)",
+  "K" = "K_O2 (d^-1)",
+  "DO" = "DO (mg L^-1)"
+))
+
+# Add a y-limit column to filter values conditionally for ER and NEP
+DataLong <- DataLong %>%
+  mutate(Value_limited = ifelse(Parameter %in% c("ER", "NEP") & Value < -60, -60, Value))
+
+# Plot with facet_wrap and conditional y-axis limits
+p <- ggplot(DataLong, aes(x = Season, y = Value_limited, fill = Site, pattern = Site)) +
+  geom_boxplot_pattern(aes(pattern_fill = Site), 
+                       color = "black", outlier.shape = NA, position = position_dodge(width = 0.75),
+                       pattern_density = 0.1, pattern_spacing = 0.05) +  # Grouped boxplot with pattern
+  
+  # Custom colors and patterns
+  scale_fill_manual(values = c("Site1" = "#4DADCF", "Site2" = "coral1")) +  # Custom colors for Site1 and Site2
+  scale_pattern_manual(values = c("Site1" = "stripe", "Site2" = "none")) +  # Different patterns
+  scale_pattern_fill_manual(values = c("Site1" = "#4DADCF", "Site2" = "coral1")) +  # Same fill colors
+  
+  # Facet with custom labels and free y-scales
+  facet_wrap(~Parameter, scales = "free_y", ncol = 1, labeller = custom_labels) +
+  labs(y = "Value") +
+  
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title = element_text(size = 14),  # Adjust font size of axis titles
+        legend.title = element_text(size = 12),  # Adjust font size of legend title
+        legend.text = element_text(size = 10)) +
+  
+  labs(x = NULL)  # Remove x-axis title
+
+# Save the plot using cairo to render patterns correctly
+ggsave("metab_summary_boxplot_season_2sites.png", 
+       plot = p, 
+       width = 750*4, height = 750*4, units = "px", 
+       device = "png", type = "cairo")
+print(p)
+
+```
+
 
 # plot out k vs NEP
 ```{r}
-p <- ggplot(Data, aes(x = K.mean, y = NEP.mean, color = Season)) +
+p <- ggplot(Data, aes(x = K.mean, y = NEP.mean, color = Season, shape = Site)) +
   geom_point() +
   #geom_line() +
   scale_color_manual(values=c("Winter"="#4DADCF", "Summer"= "coral1","Fall"="#E9943A", "Spring"="#5EC795")) +
@@ -136,7 +353,7 @@ p <- ggplot(Data, aes(x = K.mean, y = NEP.mean, color = Season)) +
   geom_segment(aes(x = -Inf, y = -10, xend = 10, yend = -10), linetype = "dashed", color = "red") +  # Horizontal segment
   scale_x_continuous(breaks = seq(0, 90, 30), 
                      limits=c(0, 100)) + 
-  labs(x="K (d-1)",
+  labs(x=expression(K[O[2]]~(d-1)),
        y="NEP (mg O2 L-1 d-1)") +
   theme_bw()
 
