@@ -12,8 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(ggplot2)
 library(readxl)
-data <- read_excel("C:/Users/chenm/Desktop/Kevin_senior_thesis/MiniDOT _comparison/MiniDOT_comparision.xlsx")
-setwd("C:/Users/chenm/Desktop/Kevin_senior_thesis/MiniDOT _comparison")
+data <- read_excel("D:/Kevin_senior_thesis/MiniDOT _comparison/MiniDOT_comparision.xlsx")
+#setwd("C:/Users/chenm/Desktop/Kevin_senior_thesis/MiniDOT _comparison")
 View(data)
 ```
 
@@ -29,13 +29,13 @@ p <- ggplot(filtered_data, aes(x = Date)) +
   geom_point(aes(y = ER.mean, color = Name), shape = 2, size = 2) +
   # geom_line(aes(y = NEP.mean, color = Name, linetype = "NEP.mean"), size = 1) +
   # geom_point(aes(y = NEP.mean, color = Name), shape = 2, size = 2) +
-  labs(title = "Time Series of GPP.mean and ER.mean for #786242 and #792188",
+  labs(
        x = "Date",
-       y = "Value (mg O2 L-1 day-1)",
+       y = expression(Value ~ (mg ~ O[2] ~ L^{-1} ~ d^{-1})),
        color = "Identifier",
        linetype = "Measure") + 
   scale_color_manual(values=c("#786242"="#4DADCF", "#792188"="#5EC795")) +
-  theme_minimal() +
+  theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ggsave("MiniDOT.png", width = 2000, height = 2*618, units = "px")

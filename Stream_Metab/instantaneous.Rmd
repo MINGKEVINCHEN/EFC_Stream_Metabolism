@@ -72,8 +72,8 @@ p <- ggplot(instantaneous, aes(x = inv_temp, y = log_ER_instant)) +
   scale_color_manual(values=c("Winter"="#4DADCF", "Summer"= "coral1","Fall"="#E9943A", "Spring"="#5EC795")) + 
   annotate("text", x = min(instantaneous$inv_temp), y = min(instantaneous$log_ER_instant), 
            label = paste("N =", num_points), hjust = 0, vjust = 0, size = 4, color = "black") +
-  labs(x = "1/Temperature (K)",
-       y = "ln(ER(mg O2 L-1 d-1))") + 
+  labs( x = expression("1 / Temperature" ~ (K^{-1})),
+    y = expression(ln~(ER)~(mg~O[2]~L^{-1}~d^{-1}))) + 
   theme_bw()
 
 ggsave("temp_ER.png", width = 425*3, height = 496*3, units = "px")
@@ -141,8 +141,8 @@ p <- ggplot(GPP_segment, aes(x = inv_temp, y = log_GPP_instant)) +
   scale_color_manual(values=c("Winter"="#4DADCF", "Summer"= "coral1","Fall"="#E9943A", "Spring"="#5EC795")) + 
   annotate("text", x = min(GPP_segment$inv_temp), y = min(GPP_segment$log_GPP_instant), 
            label = paste("N =", num_points), hjust = 0, vjust = 0, size = 4, color = "black") +
-  labs(x = "1/Temperature (K)",
-       y = "ln(GPP(mg O2 L-1 d-1))") + 
+  labs(x = expression("1 / Temperature" ~ (K^{-1})),
+    y = expression(ln~(GPP)~(mg~O[2]~L^{-1}~d^{-1}))) + 
   theme_bw()
 
 ggsave("temp_GPP.png", width = 425*3, height = 496*3, units = "px")
@@ -162,8 +162,8 @@ p <- ggplot(instantaneous, aes(x = I, y = GPP.instant)) +
   scale_color_manual(values=c("Winter"="#4DADCF", "Summer"= "coral1","Fall"="#E9943A", "Spring"="#5EC795")) + 
   annotate("text", x = 500, y = 0.85, 
            label = paste("N =", num_points), hjust = 0, vjust = 0, size = 4, color = "black") +
-  labs(x = "PAR(umol m-2 s-1)",
-       y = "GPP(mg O2 L-1 d-1)") + 
+  labs(x = expression(PAR ~ (mu*mol ~ m^{-2} ~ s^{-1})),
+      y = expression(GPP ~ (mg ~ O[2] ~ L^{-1} ~ d^{-1}))) + 
   theme_bw()
 
 ggsave("PAR_GPP.png", width = 425*3, height = 496*3, units = "px")
@@ -268,8 +268,8 @@ p <- ggplot(instantaneous_long, aes(x = DateTime, y = value, color = variable, l
   facet_wrap(~YearMonth_Site, scales = "free", ncol = 3) +
   scale_y_continuous(breaks = seq(0, 1, 0.1), 
                      limits = c(0, 1), 
-                     sec.axis = sec_axis(~.*15, name = "DO (mg L-1)")) +
-  labs(y = "Value (mg O2 L-1 d-1)") +
+                     sec.axis = sec_axis(~.*15, name = expression(DO ~ (mg ~ L^{-1})))) +
+  labs(y = expression(Value ~ (mg ~ O[2] ~ L^{-1} ~ d^{-1}))) +
   
   # Both color and linetype scales must have the same variable levels
   scale_color_manual(values = c("ER.instant" = "#E9943A", "GPP.instant" = "#5EC795",

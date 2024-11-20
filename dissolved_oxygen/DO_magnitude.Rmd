@@ -79,7 +79,7 @@ DO_magnitude_box <- ggplot(data, aes(x = Season, y = DO_Magnitude, fill = Site, 
                        pattern_density = 0.1, pattern_spacing = 0.05) +  # Boxplot with pattern dodging
   geom_dotplot(binaxis = 'y', stackdir = 'center', binwidth = 0.1, 
                position = position_dodge(0.8)) +  # Dotplot with dodging
-  labs(y = "DO Amplitude (mg L-1)", fill = "Site", pattern = "Pattern") +  # Title for the legend
+  labs(y = expression(DO ~ Amplitude  ~ (mg ~ L^{-1})), fill = "Site", pattern = "Pattern") +  # Title for the legend
   scale_fill_manual(values = c("Site1" = "#4DADCF", "Site2" = "coral1")) +  # Colors for Site1 and Site2
   scale_pattern_manual(values = c("Site1" = "stripe", "Site2" = "none")) +  # Pattern for Site1, none for Site2
   scale_pattern_fill_manual(values = c("Site1" = "#4DADCF", "Site2" = "coral1")) +  # Fill colors for pattern
