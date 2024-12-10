@@ -100,44 +100,7 @@ DataPlot <- DataLong %>%
   select(Date, Parameter, Value, max, min)
 ```
 
-# individual time series for GPP, ER, NEP
-```{r}
-p <- ggplot(DataLong%>%filter(Date < "2023-8-1"), aes(x = Date, y = Value)) +
-  geom_errorbar(aes(ymin = min, ymax = max)) +
-  geom_point(size = 1) +
-  geom_smooth(method = "loess", fill='darkred', 
-              level=0.90) +
-  labs(title = "Stream Metabolism Summary, May 2022 - May 2023",
-       x="Month",
-       y="Value (mg O2 L-1 d-1)") +
-  theme_bw()+
-  facet_wrap(~Parameter, scales = "free", ncol = 1)
-ggsave("metab_summary.png", width = 750*4, height = 600*4, units = "px")
-print(p)
-```
 
-# Combine same month in different years
-```{r}
-p <- ggplot(DataLong, aes(x = full_dates, y = Value)) +
-  geom_errorbar(aes(ymin = min, ymax = max)) +
-  geom_point(size = 1.5) + 
-  #scale_color_manual(values=c("original"="black", "complementary"= "#4DADCF")) +
-  geom_smooth(method = "loess", fill='darkgray', 
-              level=0.90) +
-  scale_x_datetime(labels = date_format("%b")) + # Format x-axis labels
-  labs(title = "Stream Metabolism Summary, all measurements",
-       x="Month",
-       y="Value (mg O2 L-1 d-1)") +
-  theme_bw()+ 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.title = element_text(size = 14),  # Adjust font size of axis titles
-        plot.title = element_text(size = 16, face = "bold"),  # Adjust font size and style of plot title
-        legend.title = element_text(size = 12),  # Adjust font size of legend title
-        legend.text = element_text(size = 10)) +
-  facet_wrap(~Parameter, scales = "free", ncol = 1)
-ggsave("metab_summary_all.png", width = 750*4, height = 600*4, units = "px")
-print(p)
-```
 
 ```{r}
 # Adjust ggplot to use boxplot for each month
@@ -377,7 +340,7 @@ print(p)
 
 # plot out k vs NEP
 ```{r}
-p <- ggplot(Data, aes(x = K.mean, y = NEP.mean, color = Season, shape = Site)) +
+p <- ggplot(Data, aes(x = K.mean * Depth, y = NEP.mean, color = Season, shape = Site)) +
   geom_point() +
   #geom_line() +
   scale_color_manual(values=c("Winter"="#4DADCF", "Summer"= "coral1","Fall"="#E9943A", "Spring"="#5EC795")) +
@@ -386,12 +349,30 @@ p <- ggplot(Data, aes(x = K.mean, y = NEP.mean, color = Season, shape = Site)) +
   scale_x_continuous(breaks = seq(0, 90, 30), 
                      limits=c(0, 100)) + 
   labs(
-    x = expression(K[O[2]] ~ (d^{-1})),
+    x = expression(K[gas_transfer] ~ (m ~ d^{-1})),
     y = expression(NEP ~ (mg ~ O[2] ~ L^{-1} ~ d^{-1}))
   ) +
   theme_bw()
 
 ggsave("K_NEP.png", width = 550*3, height = 496*3, units = "px")
 print(p)
+```
+
+```{r}
+# Create a transformed column for K.mean * Depth
+Data$K_transformed <- Data$K.mean * Data$Depth
+
+# Define the bounds
+x_bound <- 10  # Vertical line at x = 10
+y_bound <- -10  # Horizontal line at y = -10
+
+# Filter points within the bounds
+Data_in_bounds <- Data[Data$K_transformed <= x_bound & Data$NEP.mean <= y_bound, ]
+
+# Count the number of points for each season
+counts_by_season <- table(Data_in_bounds$Season)
+
+# Print the results
+print(counts_by_season)
 ```
 
